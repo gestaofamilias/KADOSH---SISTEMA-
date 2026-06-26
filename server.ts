@@ -1,7 +1,4 @@
 import express from "express";
-import path from "path";
-import fs from "fs";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import * as ollama from "./services/ollama";
@@ -20,7 +17,7 @@ process.on("uncaughtException", (err: any) => {
   console.error("Erro não tratado (uncaughtException):", err?.message || err, err?.stack || "");
 });
 
-const app = express();
+export const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
@@ -1024,8 +1021,11 @@ async function checkBirthdaysAndNotify() {
   }
 }
 
-// VITE ENGINE SETUP FOR DEVELOPMENT VS PRODUCTION
-async function startServer() {
+// Tarefas de inicialização (IA local, lembrete de aniversário, estatísticas).
+// Roda fora da Vercel: lá o app é importado como função serverless por
+// requisição (ver api/[...path].ts) e não há um processo de longa duração
+// para manter o setInterval ou justificar checagens só de "boot".
+export async function runStartupTasks() {
   await initOllama();
 
   try {
@@ -1040,26 +1040,10 @@ async function startServer() {
   } catch (error: any) {
     console.error("Aviso: não foi possível conectar ao Supabase para recalcular estatísticas no início. O servidor continuará no ar, mas as rotas de dados podem falhar até a conexão voltar:", error.message || error);
   }
-
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-    console.log("Vite middleware do desenvolvimento acoplado ao Express.");
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-    console.log("Servidor Express acoplado à build de produção estática.");
-  }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Kadosh Manager rodando com sucesso no endereço http://localhost:${PORT}`);
-  });
 }
 
-startServer();
+export const PORT_NUMBER = PORT;
+
+if (!process.env.VERCEL) {
+  runStartupTasks();
+}

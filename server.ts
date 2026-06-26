@@ -1,9 +1,9 @@
 import express from "express";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import * as ollama from "./services/ollama";
-import * as db from "./services/supabase";
-import { supabase } from "./services/supabase";
+import * as ollama from "./services/ollama.js";
+import * as db from "./services/supabase.js";
+import { supabase } from "./services/supabase.js";
 
 dotenv.config();
 

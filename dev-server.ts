@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { app, PORT_NUMBER } from "./server";
+import { app, PORT_NUMBER } from "./server.js";
 
 // Acopla o Vite (dev) ou os arquivos estáticos da build (produção self-hosted)
 // ao app Express e sobe o processo de longa duração. Usado por `npm run dev`

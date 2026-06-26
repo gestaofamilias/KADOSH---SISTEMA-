@@ -1,0 +1,6 @@
+{
+  "name": "Kadosh Manager",
+  "description": "Gestão Inteligente de Louvor e Ministérios do Grupo de Louvor Kadosh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

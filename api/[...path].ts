@@ -1,9 +1,7 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import serverless from "serverless-http";
 import { app } from "../server.js";
 
-const handler = serverless(app);
-
-export default async function (req: VercelRequest, res: VercelResponse) {
-  await handler(req, res);
-}
+// O Express app já tem a assinatura (req, res) que a Vercel espera de uma
+// Function — não precisa (e não deve) ser embrulhado por serverless-http,
+// que foi feito para o formato de evento da AWS Lambda e não para os
+// objetos de requisição reais que a Vercel entrega aqui.
+export default app;

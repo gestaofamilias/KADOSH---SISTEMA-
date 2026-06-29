@@ -811,7 +811,7 @@ export function DashboardView({
           <div>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-base font-display font-semibold text-[#E7C19A] flex items-center gap-2">
-                <Award size={18} className="text-[#CC5A0D]" /> Ministros Mais Escalados (Revezamento)
+                <Award size={18} className="text-[#CC5A0D]" /> Membros Mais Escalados (Revezamento)
               </h2>
               <span className="text-xs text-gray-500 font-mono">Participações</span>
             </div>
@@ -830,7 +830,7 @@ export function DashboardView({
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-gray-500 font-bold text-[11px] w-4">{idx + 1}.</span>
                           <img
-                            src={getMusicianAvatar(mus.name, mus.gender || "M")}
+                            src={mus.photo || getMusicianAvatar(mus.name, mus.gender || "M")}
                             alt={mus.name}
                             className="w-7 h-7 rounded-full object-cover border border-[#E7C19A]/20"
                             referrerPolicy="no-referrer"

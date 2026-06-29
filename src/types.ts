@@ -14,6 +14,8 @@ export interface Musician {
   secondaryRoles?: Array<"Vocal" | "Instrumento" | "Técnico de som" | "Datashow">;
   /** Voz/instrumento usado quando ela é escalada por uma das funções secundárias. */
   secondaryInstrument?: string;
+  /** Outros instrumentos/funções que ela também toca dentro da MESMA função principal (ex: toca Teclado E Violão). */
+  otherInstruments?: string[];
 }
 
 export interface Song {

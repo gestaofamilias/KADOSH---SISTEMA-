@@ -29,6 +29,7 @@ function fromDbMusician(row: any) {
     birthday: row.birthday || "",
     secondaryRoles: row.secondary_roles || [],
     secondaryInstrument: row.secondary_instrument || "",
+    otherInstruments: row.other_instruments || [],
   };
 }
 
@@ -40,7 +41,7 @@ export async function listMusicians() {
 
 export async function createMusician(input: {
   name: string; role: string; instrument: string; active?: boolean; gender?: string; phone?: string;
-  photo?: string; birthday?: string; secondaryRoles?: string[]; secondaryInstrument?: string;
+  photo?: string; birthday?: string; secondaryRoles?: string[]; secondaryInstrument?: string; otherInstruments?: string[];
 }) {
   const row = {
     id: randomUUID(),
@@ -55,6 +56,7 @@ export async function createMusician(input: {
     birthday: input.birthday || null,
     secondary_roles: input.secondaryRoles || [],
     secondary_instrument: input.secondaryInstrument || null,
+    other_instruments: input.otherInstruments || [],
   };
   const { data, error } = await supabase.from("musicians").insert(row).select().single();
   if (error) throw error;
@@ -63,7 +65,7 @@ export async function createMusician(input: {
 
 export async function updateMusician(id: string, patch: Partial<{
   name: string; role: string; instrument: string; active: boolean; gender: string; phone: string;
-  photo: string; birthday: string; secondaryRoles: string[]; secondaryInstrument: string;
+  photo: string; birthday: string; secondaryRoles: string[]; secondaryInstrument: string; otherInstruments: string[];
 }>) {
   const dbPatch: any = { ...patch };
   if ("secondaryRoles" in patch) {
@@ -73,6 +75,10 @@ export async function updateMusician(id: string, patch: Partial<{
   if ("secondaryInstrument" in patch) {
     dbPatch.secondary_instrument = patch.secondaryInstrument;
     delete dbPatch.secondaryInstrument;
+  }
+  if ("otherInstruments" in patch) {
+    dbPatch.other_instruments = patch.otherInstruments;
+    delete dbPatch.otherInstruments;
   }
   const { data, error } = await supabase.from("musicians").update(dbPatch).eq("id", id).select().maybeSingle();
   if (error) throw error;

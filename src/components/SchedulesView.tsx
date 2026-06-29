@@ -6,7 +6,7 @@ import {
   Copy, Share2, History, Search, ArrowUpRight, Award, Music, Mic,
   Sliders, MonitorPlay
 } from "lucide-react";
-import { Schedule, Musician, Song, AIAnalysis } from "../types";
+import { Schedule, Musician, Song, AIAnalysis, getMusicianAvatar } from "../types";
 import { motion } from "motion/react";
 import { apiFetch } from "../lib/api";
 
@@ -151,6 +151,9 @@ export function SchedulesView({ forceAiInit = false }: { forceAiInit?: boolean }
   const [selectedVocals, setSelectedVocals] = useState<any[]>([]);
   const [selectedInst, setSelectedInst] = useState<any[]>([]);
   const [selectedTech, setSelectedTech] = useState<any[]>([]);
+  const [searchVocal, setSearchVocal] = useState("");
+  const [searchInst, setSearchInst] = useState("");
+  const [searchTech, setSearchTech] = useState("");
   const [selectedSongs, setSelectedSongs] = useState<any[]>([]);
 
   // AI Generation Workspace State
@@ -220,6 +223,9 @@ export function SchedulesView({ forceAiInit = false }: { forceAiInit?: boolean }
     setSelectedSongs([]);
     setCurrentAnalysis(null);
     setShowAnalysisPane(false);
+    setSearchVocal("");
+    setSearchInst("");
+    setSearchTech("");
     setIsEditing(true);
   };
 
@@ -238,6 +244,9 @@ export function SchedulesView({ forceAiInit = false }: { forceAiInit?: boolean }
     setSelectedSongs([...sch.songs]);
     setCurrentAnalysis(null);
     setShowAnalysisPane(false);
+    setSearchVocal("");
+    setSearchInst("");
+    setSearchTech("");
     setIsEditing(true);
   };
 
@@ -247,6 +256,19 @@ export function SchedulesView({ forceAiInit = false }: { forceAiInit?: boolean }
     category === "vocal" ? hasRole(mus, "Vocal")
     : category === "instrument" ? hasRole(mus, "Instrumento")
     : hasRole(mus, "Técnico de som") || hasRole(mus, "Datashow");
+
+  const matchesPickerSearch = (mus: Musician, query: string) => {
+    if (!query.trim()) return true;
+    const q = query.trim().toLowerCase();
+    return mus.name.toLowerCase().includes(q) || mus.instrument.toLowerCase().includes(q);
+  };
+
+  const eligibleVocals = musicians.filter(m => isEligibleForCategory(m, "vocal") && m.active);
+  const filteredVocalPicker = eligibleVocals.filter(m => matchesPickerSearch(m, searchVocal));
+  const eligibleInst = musicians.filter(m => isEligibleForCategory(m, "instrument") && m.active);
+  const filteredInstPicker = eligibleInst.filter(m => matchesPickerSearch(m, searchInst));
+  const eligibleTech = musicians.filter(m => isEligibleForCategory(m, "technician") && m.active);
+  const filteredTechPicker = eligibleTech.filter(m => matchesPickerSearch(m, searchTech));
 
   // Add a vocalist, instrumentalist or technician (Som/Datashow) ref to current scale
   const handleToggleMusicianRef = (mus: Musician, category: "vocal" | "instrument" | "technician") => {
@@ -1595,8 +1617,8 @@ ${sgsText || "_Nenhum repertório selecionado_"}
       {/* SCALE CREATION / EDITOR FRAME */}
       {isEditing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm overflow-y-auto animate-fadeIn">
-          <div className="w-full max-w-4xl bg-[#161616]/95 backdrop-blur-xl rounded-2xl border border-[#E7C19A]/25 overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
-            
+          <div className="w-full max-w-7xl bg-[#161616]/95 backdrop-blur-xl rounded-2xl border border-[#E7C19A]/25 overflow-hidden shadow-2xl flex flex-col max-h-[94vh]">
+
             {/* Header */}
             <div className="p-5 border-b border-white/5 flex justify-between items-center bg-[#0F0F0F]">
               <div>
@@ -1607,13 +1629,21 @@ ${sgsText || "_Nenhum repertório selecionado_"}
               </div>
               <div className="flex items-center gap-3">
                 <button
+                  id="sch-btn-open-ai-generator"
+                  type="button"
+                  onClick={() => setShowAiGenerator(true)}
+                  className="px-4 py-1.5 bg-gradient-to-r from-[#CC5A0D] to-[#e06b18] text-black border border-[#CC5A0D]/40 hover:brightness-105 rounded-lg text-xs font-bold uppercase tracking-tight flex items-center gap-1 transition-all"
+                >
+                  <Sparkles size={12} /> Gerar via Kadosh AI
+                </button>
+                <button
                   onClick={handleAnalyzeScale}
                   disabled={analyzing}
-                  className="px-4 py-1.5 bg-[#CC5A0D]/10 text-[#CC5A0D] border border--[#CC5A0D]/20 hover:bg-[#CC5A0D]/20 rounded-lg text-xs font-bold uppercase tracking-tight flex items-center gap-1 transition-all"
+                  className="px-4 py-1.5 bg-[#CC5A0D]/10 text-[#CC5A0D] border border-[#CC5A0D]/20 hover:bg-[#CC5A0D]/20 rounded-lg text-xs font-bold uppercase tracking-tight flex items-center gap-1 transition-all"
                 >
                   <Sparkles size={12} /> {analyzing ? "Avaliando..." : "Analisar Escala (IA)"}
                 </button>
-                <button 
+                <button
                   onClick={() => setIsEditing(false)}
                   className="p-1 rounded hover:bg-white/5 text-gray-400 hover:text-white"
                 >
@@ -1622,38 +1652,34 @@ ${sgsText || "_Nenhum repertório selecionado_"}
               </div>
             </div>
 
-            {/* Split Panels */}
-            <div className="flex-1 overflow-y-auto p-5 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
-              {/* Left Column: Form general */}
-              <div className="lg:col-span-4 space-y-4">
-                <div className="bg-[#0A0A0A]/60 backdrop-blur-md p-4 rounded-xl border border-[#E7C19A]/15 space-y-4">
-                  <h4 className="text-xs font-bold uppercase text-[#E7C19A] tracking-wider border-b border-white/5 pb-2">Informações Gerais</h4>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Data do Culto</label>
-                      <input
-                        id="sch-form-date"
-                        type="date"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="w-full text-xs px-3 py-2 bg-black border border-white/5 rounded-lg text-white font-mono focus:outline-none focus:border-[#CC5A0D]"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Horário</label>
-                      <input
-                        id="sch-form-time"
-                        type="time"
-                        value={time}
-                        onChange={(e) => setTime(e.target.value)}
-                        className="w-full text-xs px-3 py-2 bg-black border border-white/5 rounded-lg text-white font-mono focus:outline-none focus:border-[#CC5A0D]"
-                      />
-                    </div>
-                  </div>
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-5 md:p-6 space-y-5">
 
+              {/* Informações Gerais — barra horizontal compacta */}
+              <div className="bg-[#0A0A0A]/60 backdrop-blur-md p-4 rounded-xl border border-[#E7C19A]/15">
+                <h4 className="text-xs font-bold uppercase text-[#E7C19A] tracking-wider border-b border-white/5 pb-2 mb-3">Informações Gerais</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                   <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Data do Culto</label>
+                    <input
+                      id="sch-form-date"
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-black border border-white/5 rounded-lg text-white font-mono focus:outline-none focus:border-[#CC5A0D]"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Horário</label>
+                    <input
+                      id="sch-form-time"
+                      type="time"
+                      value={time}
+                      onChange={(e) => setTime(e.target.value)}
+                      className="w-full text-xs px-3 py-2 bg-black border border-white/5 rounded-lg text-white font-mono focus:outline-none focus:border-[#CC5A0D]"
+                    />
+                  </div>
+                  <div className="space-y-1 col-span-2 sm:col-span-1">
                     <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Nome / Tipo do Culto</label>
                     <input
                       id="sch-form-title"
@@ -1664,8 +1690,7 @@ ${sgsText || "_Nenhum repertório selecionado_"}
                       className="w-full text-xs px-3 py-2 bg-black border border-white/5 rounded-lg text-white focus:outline-none focus:border-[#CC5A0D]"
                     />
                   </div>
-
-                  <div className="space-y-1">
+                  <div className="space-y-1 col-span-2 sm:col-span-1">
                     <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Sensibilidade do Altar / Tema</label>
                     <input
                       id="sch-form-theme"
@@ -1676,7 +1701,6 @@ ${sgsText || "_Nenhum repertório selecionado_"}
                       className="w-full text-xs px-3 py-2 bg-black border border-white/5 rounded-lg text-white focus:outline-none focus:border-[#CC5A0D]"
                     />
                   </div>
-
                   <div className="space-y-1">
                     <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Coordenador do Altar</label>
                     <input
@@ -1687,7 +1711,6 @@ ${sgsText || "_Nenhum repertório selecionado_"}
                       className="w-full text-xs px-3 py-2 bg-black border border-white/5 rounded-lg text-white focus:outline-none focus:border-[#CC5A0D]"
                     />
                   </div>
-
                   <div className="space-y-1">
                     <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Estado de Homologação</label>
                     <select
@@ -1696,337 +1719,370 @@ ${sgsText || "_Nenhum repertório selecionado_"}
                       onChange={(e) => setStatus(e.target.value as "Rascunho" | "Aprovado")}
                       className="w-full text-xs px-3 py-2 bg-black border border-white/5 rounded-lg text-white focus:outline-none focus:border-[#CC5A0D]"
                     >
-                      <option value="Rascunho">Rascunho (Em Configuração)</option>
-                      <option value="Aprovado">Aprovado (Publicidade WhatsApp)</option>
+                      <option value="Rascunho">Rascunho</option>
+                      <option value="Aprovado">Aprovado (WhatsApp)</option>
                     </select>
                   </div>
                 </div>
-
-                {/* AI Generation prompt button */}
-                <div className="bg-gradient-to-tr from-[#161616]/85 to-[#1d120a]/75 backdrop-blur-md p-4 rounded-xl border border-[#E7C19A]/20 space-y-3">
-                  <div className="flex items-center gap-1 bg-[#CC5A0D]/10 px-2 py-0.5 rounded text-[9px] font-bold text-[#CC5A0D] w-max font-mono">
-                    <Sparkles size={10} /> KADOSH AI ASSIST
-                  </div>
-                  <h4 className="text-xs font-semibold text-[#E7C19A] leading-tight">Geração Automática de Escalas</h4>
-                  <p className="text-[10px] text-gray-400">Insira um mote e deixe a IA de contingência Kadosh selecionar as melhores vozes, instrumentos e tons para equilibrar o revezamento.</p>
-                  <button
-                    id="sch-btn-open-ai-generator"
-                    type="button"
-                    onClick={() => setShowAiGenerator(true)}
-                    className="w-full py-2 bg-[#CC5A0D] text-black text-[10px] font-bold rounded-lg uppercase tracking-wider hover:brightness-105"
-                  >
-                    Gerar via Kadosh AI
-                  </button>
-                </div>
               </div>
 
-              {/* Right Column: Interactive lists selector */}
-              <div className="lg:col-span-8 flex flex-col gap-6">
-                
-                {/* AI quality analysis output if verified */}
-                {showAnalysisPane && currentAnalysis && (
-                  <div className="bg-[#121212] border-2 border-[#CC5A0D]/30 rounded-xl p-4 md:p-5 space-y-3 relative shrink-0">
-                    <button 
-                      onClick={() => setShowAnalysisPane(false)}
-                      className="absolute right-3 top-3 text-gray-500 hover:text-white"
-                    >
-                      <X size={14} />
-                    </button>
+              {/* AI quality analysis output if verified */}
+              {showAnalysisPane && currentAnalysis && (
+                <div className="bg-[#121212] border-2 border-[#CC5A0D]/30 rounded-xl p-4 md:p-5 space-y-3 relative">
+                  <button
+                    onClick={() => setShowAnalysisPane(false)}
+                    className="absolute right-3 top-3 text-gray-500 hover:text-white"
+                  >
+                    <X size={14} />
+                  </button>
 
-                    <div className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wider border-b border-white/5 pb-2">
-                      <ShieldCheck className="text-green-500" size={18} /> Homologação de Altar Kadosh AI
+                  <div className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wider border-b border-white/5 pb-2">
+                    <ShieldCheck className="text-green-500" size={18} /> Homologação de Altar Kadosh AI
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <span className="text-[9px] uppercase font-bold text-gray-400 block font-mono">Déficit Vocal Coro</span>
+                      <p className="text-gray-300 mt-0.5 leading-relaxed bg-black/30 p-2 border border-white/5 rounded">{currentAnalysis.ausenciaVozes}</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <span className="text-[9px] uppercase font-bold text-gray-400 block font-mono">Ausência Instrumental</span>
+                      <p className="text-gray-300 mt-0.5 leading-relaxed bg-black/30 p-2 border border-white/5 rounded">{currentAnalysis.ausenciaInstrumentos}</p>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <span className="text-[9px] uppercase font-bold text-gray-400 block font-mono">Compatibilidade e Repertório litúrgico</span>
+                      <p className="text-gray-300 mt-0.5 leading-relaxed bg-black/30 p-2 border border-white/5 rounded">{currentAnalysis.analiseRepertorio}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-3 border-t border-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full border-4 border-[#CC5A0D] flex items-center justify-center font-bold text-sm bg-black text-[#E7C19A]">
+                        {currentAnalysis.pontuacaoSeguranca}%
+                      </div>
                       <div>
-                        <span className="text-[9px] uppercase font-bold text-gray-400 block font-mono">Déficit Vocal Coro</span>
-                        <p className="text-gray-300 mt-0.5 leading-relaxed bg-black/30 p-2 border border-white/5 rounded">{currentAnalysis.ausenciaVozes}</p>
-                      </div>
-
-                      <div>
-                        <span className="text-[9px] uppercase font-bold text-gray-400 block font-mono">Ausência Instrumental</span>
-                        <p className="text-gray-300 mt-0.5 leading-relaxed bg-black/30 p-2 border border-white/5 rounded">{currentAnalysis.ausenciaInstrumentos}</p>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <span className="text-[9px] uppercase font-bold text-gray-400 block font-mono">Compatibilidade e Repertório litúrgico</span>
-                        <p className="text-gray-300 mt-0.5 leading-relaxed bg-black/30 p-2 border border-white/5 rounded">{currentAnalysis.analiseRepertorio}</p>
+                        <span className="text-[9px] font-bold uppercase text-gray-400 block font-mono">Escore de Sucesso Executivo</span>
+                        <span className="text-xs font-semibold text-white">Análise de fadiga & estabilidade musical</span>
                       </div>
                     </div>
 
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-3 border-t border-white/5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full border-4 border-[#CC5A0D] flex items-center justify-center font-bold text-sm bg-black text-[#E7C19A]">
-                          {currentAnalysis.pontuacaoSeguranca}%
-                        </div>
-                        <div>
-                          <span className="text-[9px] font-bold uppercase text-gray-400 block font-mono">Escore de Sucesso Executivo</span>
-                          <span className="text-xs font-semibold text-white">Análise de fadiga & estabilidade musical</span>
-                        </div>
-                      </div>
-
-                      <div className="max-w-xs text-[10px] text-[#E7C19A] italic p-2 bg-[#CC5A0D]/5 rounded border border-[#CC5A0D]/10">
-                        <strong>Dica Técnico-Pastoral:</strong> {currentAnalysis.conselhosProcuctor}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Grid Pick members */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Select Vocal */}
-                  <div className="bg-[#0A0A0A]/60 backdrop-blur-md p-4 rounded-xl border border-[#E7C19A]/15 flex flex-col h-80">
-                    <h4 className="text-xs font-bold uppercase text-[#E7C19A] tracking-wider border-b border-white/5 pb-2 flex justify-between items-center">
-                      <span>Equipe de Vozes (Soprano, Tenor, Alto)</span>
-                      <span className="font-mono text-[9px] text-[#CC5A0D]">({selectedVocals.length} escalados)</span>
-                    </h4>
-
-                    <div className="flex-1 overflow-y-auto space-y-2 mt-3 pr-1">
-                      {musicians.filter(m => isEligibleForCategory(m, "vocal") && m.active).map(m => {
-                        const isScheduled = selectedVocals.some(v => v.id === m.id);
-                        const refObj = selectedVocals.find(v => v.id === m.id);
-                        return (
-                          <div key={m.id} className="p-2.5 bg-[#161616] rounded-lg border border-white/5 flex flex-col gap-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <span className="text-xs font-semibold text-white block leading-tight">{m.name}</span>
-                                <span className="text-[9px] font-mono text-gray-500">{m.instrument} • {m.scaleCount} esc.</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleMusicianRef(m, "vocal")}
-                                className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase transition-all ${
-                                  isScheduled 
-                                    ? "bg-red-500/10 text-red-400 border border-red-500/20" 
-                                    : "bg-[#CC5A0D]/10 text-[#CC5A0D] border border-[#CC5A0D]/20 hover:bg-[#CC5A0D]/20"
-                                }`}
-                              >
-                                {isScheduled ? "Remover" : "Escalar"}
-                              </button>
-                            </div>
-
-                            {isScheduled && refObj && (
-                              <div className="flex items-center gap-1.5 pt-1.5 border-t border-white/[0.02]">
-                                <span className="text-[9px] text-gray-500 uppercase font-mono">Status:</span>
-                                <div className="flex gap-1 ml-auto">
-                                  {["Pendente", "Confirmado", "Recusado"].map(st => (
-                                    <button
-                                      key={st}
-                                      type="button"
-                                      onClick={() => handleChangeMusicianStatus(m.id, "vocal", st)}
-                                      className={`px-1.5 py-0.5 rounded text-[8px] font-bold font-mono ${
-                                        refObj.status === st 
-                                          ? "bg-[#CC5A0D] text-black" 
-                                          : "bg-black text-gray-500 hover:text-white"
-                                      }`}
-                                    >
-                                      {st.slice(0, 4)}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Select Instrumentalists */}
-                  <div className="bg-[#0A0A0A]/60 backdrop-blur-md p-4 rounded-xl border border-[#E7C19A]/15 flex flex-col h-80">
-                    <h4 className="text-xs font-bold uppercase text-[#E7C19A] tracking-wider border-b border-white/5 pb-2 flex justify-between items-center">
-                      <span>Equipe Instrumental (Geral)</span>
-                      <span className="font-mono text-[9px] text-[#CC5A0D]">({selectedInst.length} escalados)</span>
-                    </h4>
-
-                    <div className="flex-1 overflow-y-auto space-y-2 mt-3 pr-1">
-                      {musicians.filter(m => isEligibleForCategory(m, "instrument") && m.active).map(m => {
-                        const isScheduled = selectedInst.some(i => i.id === m.id);
-                        const refObj = selectedInst.find(i => i.id === m.id);
-                        return (
-                          <div key={m.id} className="p-2.5 bg-[#161616] rounded-lg border border-white/5 flex flex-col gap-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <span className="text-xs font-semibold text-white block leading-tight">{m.name}</span>
-                                <span className="text-[9px] font-mono text-gray-500">{m.instrument} • {m.scaleCount} esc.</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleMusicianRef(m, "instrument")}
-                                className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase transition-all ${
-                                  isScheduled 
-                                    ? "bg-red-500/10 text-red-400 border border-red-500/20" 
-                                    : "bg-[#CC5A0D]/10 text-[#CC5A0D] border border-[#CC5A0D]/20 hover:bg-[#CC5A0D]/20"
-                                }`}
-                              >
-                                {isScheduled ? "Remover" : "Escalar"}
-                              </button>
-                            </div>
-
-                            {isScheduled && refObj && (
-                              <div className="flex items-center gap-1.5 pt-1.5 border-t border-white/[0.02]">
-                                <span className="text-[9px] text-gray-500 uppercase font-mono">Status:</span>
-                                <div className="flex gap-1 ml-auto">
-                                  {["Pendente", "Confirmado", "Recusado"].map(st => (
-                                    <button
-                                      key={st}
-                                      type="button"
-                                      onClick={() => handleChangeMusicianStatus(m.id, "instrument", st)}
-                                      className={`px-1.5 py-0.5 rounded text-[8px] font-bold font-mono ${
-                                        refObj.status === st 
-                                          ? "bg-[#CC5A0D] text-black" 
-                                          : "bg-black text-gray-500 hover:text-white"
-                                      }`}
-                                    >
-                                      {st.slice(0, 4)}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Select Technicians (Som / Datashow) */}
-                  <div className="bg-[#0A0A0A]/60 backdrop-blur-md p-4 rounded-xl border border-[#E7C19A]/15 flex flex-col h-80">
-                    <h4 className="text-xs font-bold uppercase text-[#E7C19A] tracking-wider border-b border-white/5 pb-2 flex justify-between items-center">
-                      <span>Equipe Técnica (Som / Datashow)</span>
-                      <span className="font-mono text-[9px] text-[#CC5A0D]">({selectedTech.length} escalados)</span>
-                    </h4>
-
-                    <div className="flex-1 overflow-y-auto space-y-2 mt-3 pr-1">
-                      {musicians.filter(m => isEligibleForCategory(m, "technician") && m.active).map(m => {
-                        const isScheduled = selectedTech.some(t => t.id === m.id);
-                        const refObj = selectedTech.find(t => t.id === m.id);
-                        return (
-                          <div key={m.id} className="p-2.5 bg-[#161616] rounded-lg border border-white/5 flex flex-col gap-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <span className="text-xs font-semibold text-white block leading-tight">{m.name}</span>
-                                <span className="text-[9px] font-mono text-gray-500">{m.role} • {m.instrument} • {m.scaleCount} esc.</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleMusicianRef(m, "technician")}
-                                className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase transition-all ${
-                                  isScheduled
-                                    ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                                    : "bg-[#CC5A0D]/10 text-[#CC5A0D] border border-[#CC5A0D]/20 hover:bg-[#CC5A0D]/20"
-                                }`}
-                              >
-                                {isScheduled ? "Remover" : "Escalar"}
-                              </button>
-                            </div>
-
-                            {isScheduled && refObj && (
-                              <div className="flex items-center gap-1.5 pt-1.5 border-t border-white/[0.02]">
-                                <span className="text-[9px] text-gray-500 uppercase font-mono">Status:</span>
-                                <div className="flex gap-1 ml-auto">
-                                  {["Pendente", "Confirmado", "Recusado"].map(st => (
-                                    <button
-                                      key={st}
-                                      type="button"
-                                      onClick={() => handleChangeMusicianStatus(m.id, "technician", st)}
-                                      className={`px-1.5 py-0.5 rounded text-[8px] font-bold font-mono ${
-                                        refObj.status === st
-                                          ? "bg-[#CC5A0D] text-black"
-                                          : "bg-black text-gray-500 hover:text-white"
-                                      }`}
-                                    >
-                                      {st.slice(0, 4)}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {musicians.filter(m => isEligibleForCategory(m, "technician") && m.active).length === 0 && (
-                        <p className="text-[10px] text-gray-500 font-mono text-center py-6">
-                          Nenhum Técnico de Som ou Datashow cadastrado ainda em Equipe.
-                        </p>
-                      )}
+                    <div className="max-w-xs text-[10px] text-[#E7C19A] italic p-2 bg-[#CC5A0D]/5 rounded border border-[#CC5A0D]/10">
+                      <strong>Dica Técnico-Pastoral:</strong> {currentAnalysis.conselhosProcuctor}
                     </div>
                   </div>
                 </div>
+              )}
 
-                {/* Song repertoire selector */}
-                <div className="bg-[#0A0A0A]/60 backdrop-blur-md p-4 rounded-xl border border-[#E7C19A]/15 flex flex-col">
-                  <h4 className="text-xs font-bold uppercase text-[#E7C19A] tracking-wider border-b border-white/5 pb-2 flex justify-between items-center">
-                    <span>Repertório da Ministração</span>
-                    <span className="font-mono text-[9px] text-[#CC5A0D]">({selectedSongs.length} músicas)</span>
+              {/* Grid Pick members — painéis largos com busca e avatar real */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Select Vocal */}
+                <div className="bg-[#0A0A0A]/60 backdrop-blur-md p-4 rounded-xl border border-[#E7C19A]/15 flex flex-col h-[28rem]">
+                  <h4 className="text-xs font-bold uppercase text-[#E7C19A] tracking-wider border-b border-white/5 pb-2 flex justify-between items-center gap-2">
+                    <span className="flex items-center gap-1.5 truncate"><Mic size={12} className="shrink-0" /> Vozes</span>
+                    <span className="font-mono text-[9px] text-[#CC5A0D] whitespace-nowrap shrink-0">{selectedVocals.length} escalados</span>
                   </h4>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                      <span className="text-[9px] uppercase font-mono text-gray-500 font-bold block sticky top-0 bg-[#0A0A0A] py-1">Catálogo Kadosh:</span>
-                      {songs.map(sg => {
-                        const isChosen = selectedSongs.some(s => s.id === sg.id);
-                        return (
-                          <div key={sg.id} className="flex items-center justify-between p-2 bg-[#161616] rounded-lg border border-white/5 text-xs">
-                            <div>
-                              <p className="font-semibold text-white">{sg.title}</p>
-                              <p className="text-[10px] text-gray-500">{sg.author}</p>
+                  <div className="relative mt-3 mb-2">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" size={12} />
+                    <input
+                      type="text"
+                      value={searchVocal}
+                      onChange={(e) => setSearchVocal(e.target.value)}
+                      placeholder="Buscar por nome ou voz..."
+                      className="w-full pl-7 pr-3 py-1.5 bg-black border border-white/10 focus:border-[#CC5A0D] rounded-lg text-[11px] text-white focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
+                    {eligibleVocals.length === 0 ? (
+                      <p className="text-[10px] text-gray-500 font-mono text-center py-6">Nenhum membro com voz cadastrada em Equipe.</p>
+                    ) : filteredVocalPicker.length === 0 ? (
+                      <p className="text-[10px] text-gray-500 font-mono text-center py-6">Nenhum resultado para "{searchVocal}".</p>
+                    ) : filteredVocalPicker.map(m => {
+                      const isScheduled = selectedVocals.some(v => v.id === m.id);
+                      const refObj = selectedVocals.find(v => v.id === m.id);
+                      return (
+                        <div key={m.id} className={`p-2 rounded-lg border flex flex-col gap-1.5 transition-all ${isScheduled ? "bg-[#CC5A0D]/[0.07] border-[#CC5A0D]/25" : "bg-[#161616] border-white/5"}`}>
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={m.photo || getMusicianAvatar(m.name, m.gender || "M")}
+                              alt={m.name}
+                              className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-semibold text-white block leading-tight truncate">{m.name}</span>
+                              <span className="text-[9px] font-mono text-gray-500 block truncate">{m.instrument} • {m.scaleCount} esc.</span>
                             </div>
                             <button
                               type="button"
-                              onClick={() => handleToggleSongRef(sg)}
-                              className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${
-                                isChosen 
-                                  ? "bg-red-500/15 text-red-400 border border-red-500/20" 
-                                  : "bg-[#E7C19A]/15 text-[#E7C19A] border border-[#E7C19A]/20"
+                              onClick={() => handleToggleMusicianRef(m, "vocal")}
+                              title={isScheduled ? "Remover da escala" : "Escalar"}
+                              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                                isScheduled
+                                  ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
+                                  : "bg-[#CC5A0D]/10 text-[#CC5A0D] border border-[#CC5A0D]/20 hover:bg-[#CC5A0D]/20"
                               }`}
                             >
-                              {isChosen ? "Tirar" : "Escolher"}
+                              {isScheduled ? <X size={13} /> : <Plus size={13} />}
                             </button>
                           </div>
-                        );
-                      })}
-                    </div>
 
-                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1 bg-black/40 backdrop-blur-sm p-2.5 border border-[#E7C19A]/10 rounded-xl">
-                      <span className="text-[9px] uppercase font-mono text-[#E7C19A] font-bold block">Ordem Litúrgica Escolhida:</span>
-                      {selectedSongs.length === 0 ? (
-                        <p className="text-[10px] text-gray-600 italic py-6 text-center">Nenhuma canção escalada.</p>
-                      ) : (
-                        selectedSongs.map((s, index) => (
-                          <div key={s.id} className="p-2 bg-[#161616] rounded-xl border border-white/5 flex items-center justify-between text-xs">
-                            <span className="font-mono text-[#CC5A0D] font-bold">{index + 1}.</span>
-                            <div className="flex-1 ml-2">
-                              <p className="font-semibold text-white">{s.title}</p>
+                          {isScheduled && refObj && (
+                            <div className="flex items-center gap-1 pl-10">
+                              {["Pendente", "Confirmado", "Recusado"].map(st => (
+                                <button
+                                  key={st}
+                                  type="button"
+                                  onClick={() => handleChangeMusicianStatus(m.id, "vocal", st)}
+                                  className={`px-1.5 py-0.5 rounded text-[8px] font-bold font-mono ${
+                                    refObj.status === st
+                                      ? "bg-[#CC5A0D] text-black"
+                                      : "bg-black text-gray-500 hover:text-white"
+                                  }`}
+                                >
+                                  {st.slice(0, 4)}
+                                </button>
+                              ))}
                             </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-gray-500 mr-1">Tom:</span>
-                              <input
-                                type="text"
-                                value={s.tone}
-                                onChange={(e) => handleUpdateSongTone(s.id, e.target.value)}
-                                className="w-10 text-center font-mono font-bold text-xs bg-black border border-white/10 rounded focus:border-[#CC5A0D]"
-                              />
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Notes and observation panel */}
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-[#E7C19A] tracking-wider block">Observações do Altar / Instruções de Ensaio</span>
-                  <textarea
-                    id="sch-form-notes"
-                    rows={2}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Instruções para o dia do ensaio..."
-                    className="w-full text-xs p-3 bg-black border border-white/5 rounded-xl text-white focus:outline-none focus:border-[#CC5A0D] resize-none"
-                  />
+                {/* Select Instrumentalists */}
+                <div className="bg-[#0A0A0A]/60 backdrop-blur-md p-4 rounded-xl border border-[#E7C19A]/15 flex flex-col h-[28rem]">
+                  <h4 className="text-xs font-bold uppercase text-[#E7C19A] tracking-wider border-b border-white/5 pb-2 flex justify-between items-center gap-2">
+                    <span className="flex items-center gap-1.5 truncate"><Music size={12} className="shrink-0" /> Instrumental</span>
+                    <span className="font-mono text-[9px] text-[#CC5A0D] whitespace-nowrap shrink-0">{selectedInst.length} escalados</span>
+                  </h4>
+
+                  <div className="relative mt-3 mb-2">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" size={12} />
+                    <input
+                      type="text"
+                      value={searchInst}
+                      onChange={(e) => setSearchInst(e.target.value)}
+                      placeholder="Buscar por nome ou instrumento..."
+                      className="w-full pl-7 pr-3 py-1.5 bg-black border border-white/10 focus:border-[#CC5A0D] rounded-lg text-[11px] text-white focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
+                    {eligibleInst.length === 0 ? (
+                      <p className="text-[10px] text-gray-500 font-mono text-center py-6">Nenhum instrumentista cadastrado em Equipe.</p>
+                    ) : filteredInstPicker.length === 0 ? (
+                      <p className="text-[10px] text-gray-500 font-mono text-center py-6">Nenhum resultado para "{searchInst}".</p>
+                    ) : filteredInstPicker.map(m => {
+                      const isScheduled = selectedInst.some(i => i.id === m.id);
+                      const refObj = selectedInst.find(i => i.id === m.id);
+                      return (
+                        <div key={m.id} className={`p-2 rounded-lg border flex flex-col gap-1.5 transition-all ${isScheduled ? "bg-[#CC5A0D]/[0.07] border-[#CC5A0D]/25" : "bg-[#161616] border-white/5"}`}>
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={m.photo || getMusicianAvatar(m.name, m.gender || "M")}
+                              alt={m.name}
+                              className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-semibold text-white block leading-tight truncate">{m.name}</span>
+                              <span className="text-[9px] font-mono text-gray-500 block truncate">{m.instrument} • {m.scaleCount} esc.</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleMusicianRef(m, "instrument")}
+                              title={isScheduled ? "Remover da escala" : "Escalar"}
+                              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                                isScheduled
+                                  ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
+                                  : "bg-[#CC5A0D]/10 text-[#CC5A0D] border border-[#CC5A0D]/20 hover:bg-[#CC5A0D]/20"
+                              }`}
+                            >
+                              {isScheduled ? <X size={13} /> : <Plus size={13} />}
+                            </button>
+                          </div>
+
+                          {isScheduled && refObj && (
+                            <div className="flex items-center gap-1 pl-10">
+                              {["Pendente", "Confirmado", "Recusado"].map(st => (
+                                <button
+                                  key={st}
+                                  type="button"
+                                  onClick={() => handleChangeMusicianStatus(m.id, "instrument", st)}
+                                  className={`px-1.5 py-0.5 rounded text-[8px] font-bold font-mono ${
+                                    refObj.status === st
+                                      ? "bg-[#CC5A0D] text-black"
+                                      : "bg-black text-gray-500 hover:text-white"
+                                  }`}
+                                >
+                                  {st.slice(0, 4)}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Select Technicians (Som / Datashow) */}
+                <div className="bg-[#0A0A0A]/60 backdrop-blur-md p-4 rounded-xl border border-[#E7C19A]/15 flex flex-col h-[28rem]">
+                  <h4 className="text-xs font-bold uppercase text-[#E7C19A] tracking-wider border-b border-white/5 pb-2 flex justify-between items-center gap-2">
+                    <span className="flex items-center gap-1.5 truncate"><Sliders size={12} className="shrink-0" /> Técnica</span>
+                    <span className="font-mono text-[9px] text-[#CC5A0D] whitespace-nowrap shrink-0">{selectedTech.length} escalados</span>
+                  </h4>
+
+                  <div className="relative mt-3 mb-2">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" size={12} />
+                    <input
+                      type="text"
+                      value={searchTech}
+                      onChange={(e) => setSearchTech(e.target.value)}
+                      placeholder="Buscar por nome ou função..."
+                      className="w-full pl-7 pr-3 py-1.5 bg-black border border-white/10 focus:border-[#CC5A0D] rounded-lg text-[11px] text-white focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
+                    {eligibleTech.length === 0 ? (
+                      <p className="text-[10px] text-gray-500 font-mono text-center py-6">
+                        Nenhum Técnico de Som ou Datashow cadastrado ainda em Equipe.
+                      </p>
+                    ) : filteredTechPicker.length === 0 ? (
+                      <p className="text-[10px] text-gray-500 font-mono text-center py-6">Nenhum resultado para "{searchTech}".</p>
+                    ) : filteredTechPicker.map(m => {
+                      const isScheduled = selectedTech.some(t => t.id === m.id);
+                      const refObj = selectedTech.find(t => t.id === m.id);
+                      return (
+                        <div key={m.id} className={`p-2 rounded-lg border flex flex-col gap-1.5 transition-all ${isScheduled ? "bg-[#CC5A0D]/[0.07] border-[#CC5A0D]/25" : "bg-[#161616] border-white/5"}`}>
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={m.photo || getMusicianAvatar(m.name, m.gender || "M")}
+                              alt={m.name}
+                              className="w-8 h-8 rounded-full object-cover border border-white/10 shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs font-semibold text-white block leading-tight truncate">{m.name}</span>
+                              <span className="text-[9px] font-mono text-gray-500 block truncate">{m.role} • {m.instrument} • {m.scaleCount} esc.</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleMusicianRef(m, "technician")}
+                              title={isScheduled ? "Remover da escala" : "Escalar"}
+                              className={`w-7 h-7 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                                isScheduled
+                                  ? "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
+                                  : "bg-[#CC5A0D]/10 text-[#CC5A0D] border border-[#CC5A0D]/20 hover:bg-[#CC5A0D]/20"
+                              }`}
+                            >
+                              {isScheduled ? <X size={13} /> : <Plus size={13} />}
+                            </button>
+                          </div>
+
+                          {isScheduled && refObj && (
+                            <div className="flex items-center gap-1 pl-10">
+                              {["Pendente", "Confirmado", "Recusado"].map(st => (
+                                <button
+                                  key={st}
+                                  type="button"
+                                  onClick={() => handleChangeMusicianStatus(m.id, "technician", st)}
+                                  className={`px-1.5 py-0.5 rounded text-[8px] font-bold font-mono ${
+                                    refObj.status === st
+                                      ? "bg-[#CC5A0D] text-black"
+                                      : "bg-black text-gray-500 hover:text-white"
+                                  }`}
+                                >
+                                  {st.slice(0, 4)}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Song repertoire selector */}
+              <div className="bg-[#0A0A0A]/60 backdrop-blur-md p-4 rounded-xl border border-[#E7C19A]/15 flex flex-col">
+                <h4 className="text-xs font-bold uppercase text-[#E7C19A] tracking-wider border-b border-white/5 pb-2 flex justify-between items-center">
+                  <span>Repertório da Ministração</span>
+                  <span className="font-mono text-[9px] text-[#CC5A0D]">({selectedSongs.length} músicas)</span>
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    <span className="text-[9px] uppercase font-mono text-gray-500 font-bold block sticky top-0 bg-[#0A0A0A] py-1">Catálogo Kadosh:</span>
+                    {songs.map(sg => {
+                      const isChosen = selectedSongs.some(s => s.id === sg.id);
+                      return (
+                        <div key={sg.id} className="flex items-center justify-between p-2 bg-[#161616] rounded-lg border border-white/5 text-xs">
+                          <div>
+                            <p className="font-semibold text-white">{sg.title}</p>
+                            <p className="text-[10px] text-gray-500">{sg.author}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSongRef(sg)}
+                            className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${
+                              isChosen
+                                ? "bg-red-500/15 text-red-400 border border-red-500/20"
+                                : "bg-[#E7C19A]/15 text-[#E7C19A] border border-[#E7C19A]/20"
+                            }`}
+                          >
+                            {isChosen ? "Tirar" : "Escolher"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1 bg-black/40 backdrop-blur-sm p-2.5 border border-[#E7C19A]/10 rounded-xl">
+                    <span className="text-[9px] uppercase font-mono text-[#E7C19A] font-bold block">Ordem Litúrgica Escolhida:</span>
+                    {selectedSongs.length === 0 ? (
+                      <p className="text-[10px] text-gray-600 italic py-6 text-center">Nenhuma canção escalada.</p>
+                    ) : (
+                      selectedSongs.map((s, index) => (
+                        <div key={s.id} className="p-2 bg-[#161616] rounded-xl border border-white/5 flex items-center justify-between text-xs">
+                          <span className="font-mono text-[#CC5A0D] font-bold">{index + 1}.</span>
+                          <div className="flex-1 ml-2">
+                            <p className="font-semibold text-white">{s.title}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-500 mr-1">Tom:</span>
+                            <input
+                              type="text"
+                              value={s.tone}
+                              onChange={(e) => handleUpdateSongTone(s.id, e.target.value)}
+                              className="w-10 text-center font-mono font-bold text-xs bg-black border border-white/10 rounded focus:border-[#CC5A0D]"
+                            />
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes and observation panel */}
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-bold text-[#E7C19A] tracking-wider block">Observações do Altar / Instruções de Ensaio</span>
+                <textarea
+                  id="sch-form-notes"
+                  rows={2}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Instruções para o dia do ensaio..."
+                  className="w-full text-xs p-3 bg-black border border-white/5 rounded-xl text-white focus:outline-none focus:border-[#CC5A0D] resize-none"
+                />
               </div>
             </div>
 

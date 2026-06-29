@@ -244,17 +244,17 @@ app.get("/api/musicians", asyncHandler(async (req, res) => {
 }));
 
 app.post("/api/musicians", asyncHandler(async (req, res) => {
-  const { name, role, instrument, active, gender, phone, photo, birthday, secondaryRoles, secondaryInstrument } = req.body;
+  const { name, role, instrument, active, gender, phone, photo, birthday, secondaryRoles, secondaryInstrument, otherInstruments } = req.body;
   if (!name || !role || !instrument) {
     return res.status(400).json({ error: "Nome, Função (Vocal/Instrumento/Técnico de som/Datashow) e Instrumento específico são obrigatórios." });
   }
-  const newMusician = await db.createMusician({ name, role, instrument, active, gender, phone, photo, birthday, secondaryRoles, secondaryInstrument });
+  const newMusician = await db.createMusician({ name, role, instrument, active, gender, phone, photo, birthday, secondaryRoles, secondaryInstrument, otherInstruments });
   res.json(newMusician);
 }));
 
 app.put("/api/musicians/:id", asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, role, instrument, active, gender, phone, photo, birthday, secondaryRoles, secondaryInstrument } = req.body;
+  const { name, role, instrument, active, gender, phone, photo, birthday, secondaryRoles, secondaryInstrument, otherInstruments } = req.body;
   const patch: any = {};
   if (name !== undefined) patch.name = name;
   if (role !== undefined) patch.role = role;
@@ -266,6 +266,7 @@ app.put("/api/musicians/:id", asyncHandler(async (req, res) => {
   if (birthday !== undefined) patch.birthday = birthday;
   if (secondaryRoles !== undefined) patch.secondaryRoles = secondaryRoles;
   if (secondaryInstrument !== undefined) patch.secondaryInstrument = secondaryInstrument;
+  if (otherInstruments !== undefined) patch.otherInstruments = otherInstruments;
 
   const updated = await db.updateMusician(id, patch);
   if (!updated) {

@@ -162,3 +162,10 @@ create policy "musician photos - authenticated delete" on storage.objects
 -- =====================================================================
 
 alter table musicians add column if not exists birthday date;
+
+-- =====================================================================
+-- Múltiplos instrumentos dentro da MESMA função principal
+-- (ex: instrumentista que toca Teclado e também Violão)
+-- =====================================================================
+
+alter table musicians add column if not exists other_instruments text[] not null default '{}';

@@ -56,6 +56,7 @@ export function MusiciansView() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [secondaryRoles, setSecondaryRoles] = useState<Musician["role"][]>([]);
   const [secondaryInstrument, setSecondaryInstrument] = useState("");
+  const [otherInstruments, setOtherInstruments] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,6 +91,7 @@ export function MusiciansView() {
     setBirthday("");
     setSecondaryRoles([]);
     setSecondaryInstrument("");
+    setOtherInstruments([]);
     setErrorMessage("");
     setIsEditing(true);
   };
@@ -106,6 +108,7 @@ export function MusiciansView() {
     setBirthday(mus.birthday || "");
     setSecondaryRoles(mus.secondaryRoles || []);
     setSecondaryInstrument(mus.secondaryInstrument || "");
+    setOtherInstruments(mus.otherInstruments || []);
     setErrorMessage("");
     setIsEditing(true);
   };
@@ -136,6 +139,10 @@ export function MusiciansView() {
     setSecondaryRoles(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]);
   };
 
+  const toggleOtherInstrument = (item: string) => {
+    setOtherInstruments(prev => prev.includes(item) ? prev.filter(x => x !== item) : [...prev, item]);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !instrument.trim()) {
@@ -153,7 +160,8 @@ export function MusiciansView() {
       photo,
       birthday,
       secondaryRoles,
-      secondaryInstrument
+      secondaryInstrument,
+      otherInstruments
     };
 
     try {
@@ -421,6 +429,9 @@ export function MusiciansView() {
                     </td>
                     <td className="px-6 py-4 font-mono text-xs text-gray-300">
                       {mus.instrument}
+                      {(mus.otherInstruments || []).length > 0 && (
+                        <div className="text-[9px] text-gray-500 mt-0.5">+ {mus.otherInstruments!.join(", ")}</div>
+                      )}
                     </td>
                     <td className="px-6 py-4 font-mono text-xs text-gray-400">
                       {mus.phone || "—"}
@@ -652,6 +663,7 @@ export function MusiciansView() {
                         if (!suggestionsForRole(opt.value).includes(instrument)) {
                           setInstrument(opt.defaultInstrument);
                         }
+                        setOtherInstruments([]);
                       }}
                       className={`flex items-center justify-center gap-2.5 p-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
                         role === opt.value
@@ -835,6 +847,33 @@ export function MusiciansView() {
                               : "bg-[#0A0A0A] border-white/5 text-gray-400 hover:border-white/10 hover:text-white"
                           }`}
                         >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Toca mais de um instrumento/função na MESMA categoria (ex: Teclado E Violão) */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="text-[10px] uppercase font-bold text-[#E7C19A] tracking-wider block">
+                    Também toca/atua em <span className="text-gray-500 font-normal">(opcional — marque se essa pessoa se reveza em mais de um)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {suggestionsForRole(role).filter(item => item.toLowerCase() !== instrument.toLowerCase()).map((item) => {
+                      const isSel = otherInstruments.includes(item);
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => toggleOtherInstrument(item)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-medium transition-all cursor-pointer border ${
+                            isSel
+                              ? "bg-[#CC5A0D]/15 border-[#CC5A0D] text-[#E7C19A] font-bold"
+                              : "bg-black/40 border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200"
+                          }`}
+                        >
+                          {isSel && <Check size={9} className="inline mr-1 -mt-0.5" />}
                           {item}
                         </button>
                       );
